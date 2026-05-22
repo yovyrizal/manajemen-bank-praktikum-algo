@@ -74,7 +74,9 @@ void muatDariFile()
         {
             Node *temp = head;
             while (temp->kanan != nullptr)
+            {
                 temp = temp->kanan;
+            }
             temp->kanan = newNode;
             newNode->kiri = temp;
         }
@@ -118,7 +120,9 @@ void inputNasabah()
     {
         Node *temp = head;
         while (temp->kanan != nullptr)
+        {
             temp = temp->kanan;
+        }
         temp->kanan = newNode;
         newNode->kiri = temp;
     }
@@ -277,10 +281,240 @@ void editSaldo()
 
     switch (menuEdit)
     {
-    case 1: tambahSaldo(); break;
-    case 2: tarikSaldo();  break;
-    case 3: ubahNominal(); break;
-    default: cout << "Pilihan tidak valid!\n"; break;
+    case 1:
+        tambahSaldo();
+        break;
+    case 2:
+        tarikSaldo();
+        break;
+    case 3:
+        ubahNominal();
+        break;
+    default:
+        cout << "Pilihan tidak valid!\n";
+        break;
+    }
+}
+
+// ===================== SORTING SECTION
+// Bubble Sort ascending berdasarkan nama
+void bubbleSortNama()
+{
+    if (head == nullptr)
+        return;
+
+    bool swapped;
+    do
+    {
+        swapped = false;
+        Node *curr = head;
+        while (curr->kanan != nullptr)
+        {
+            if (curr->nama > curr->kanan->nama)
+            {
+                int tempId         = curr->id;
+                curr->id           = curr->kanan->id;
+                curr->kanan->id    = tempId;
+
+                string tempNama    = curr->nama;
+                curr->nama         = curr->kanan->nama;
+                curr->kanan->nama  = tempNama;
+
+                float tempSaldo    = curr->saldo;
+                curr->saldo        = curr->kanan->saldo;
+                curr->kanan->saldo = tempSaldo;
+
+                swapped = true;
+            }
+            curr = curr->kanan;
+        }
+    } while (swapped);
+}
+
+// Quick Sort descending berdasarkan saldo
+Node *getTail(Node *curr)
+{
+    while (curr != nullptr && curr->kanan != nullptr)
+        curr = curr->kanan;
+    return curr;
+}
+
+void quickSortSaldo(Node *low, Node *high)
+{
+    if (high != nullptr && low != high && low != high->kanan)
+    {
+        float pivotSaldo = high->saldo;
+
+        Node *i = low->kiri;
+
+        for (Node *j = low; j != high; j = j->kanan)
+        {
+            if (j->saldo >= pivotSaldo)
+            {
+                i = (i == nullptr) ? low : i->kanan;
+
+                int tempId         = i->id;
+                i->id              = j->id;
+                j->id              = tempId;
+
+                string tempNama    = i->nama;
+                i->nama            = j->nama;
+                j->nama            = tempNama;
+
+                float tempSaldo    = i->saldo;
+                i->saldo           = j->saldo;
+                j->saldo           = tempSaldo;
+            }
+        }
+
+        i = (i == nullptr) ? low : i->kanan;
+
+        int tempId         = i->id;
+        i->id              = high->id;
+        high->id           = tempId;
+
+        string tempNama    = i->nama;
+        i->nama            = high->nama;
+        high->nama         = tempNama;
+
+        float tempSaldo    = i->saldo;
+        i->saldo           = high->saldo;
+        high->saldo        = tempSaldo;
+
+        quickSortSaldo(low, i->kiri);
+        quickSortSaldo(i->kanan, high);
+    }
+}
+
+void sortSaldo()
+{
+    Node *tail = getTail(head);
+    quickSortSaldo(head, tail);
+}
+
+void sortingMenu()
+{
+    int menu;
+
+    cout << "\n======= MENU SORTING ======\n";
+    cout << "1. Berdasarkan Nama  (Bubble Sort Ascending)\n";
+    cout << "2. Berdasarkan Saldo (Quick Sort Descending)\n";
+    cout << "=== Pilih Menu (1/2) : ";
+    cin >> menu;
+
+    if (head == nullptr)
+    {
+        cout << "Belum ada data nasabah.\n";
+        return;
+    }
+
+    switch (menu)
+    {
+    case 1:
+        bubbleSortNama();
+        simpanKeFile();
+        cout << "Data berhasil diurutkan berdasarkan nama (A-Z).\n";
+        tampilkanNasabah();
+        break;
+    case 2:
+        sortSaldo();
+        simpanKeFile();
+        cout << "Data berhasil diurutkan berdasarkan saldo (terbesar ke terkecil).\n";
+        tampilkanNasabah();
+        break;
+    default:
+        cout << "Pilihan tidak valid!\n";
+        break;
+    }
+}
+
+// =============== SEARCHING SECTION
+void searchingMenu()
+{
+    string cariNasabah;
+
+    cout << "\n======= MENU SEARCHING ======\n";
+    cout << "=== Masukkan nama nasabah yang ingin dicari : ";
+    cin.ignore();
+    getline(cin, cariNasabah);
+
+    Node *temp = head;
+    bool ditemukan = false;
+
+    while (temp != nullptr)
+    {
+        if (temp->nama == cariNasabah)
+        {
+            if (!ditemukan)
+            {
+                cout << "\nHasil Pencarian:\n";
+                printf("%-5s %-25s %15s\n", "ID", "Nama", "Saldo");
+                cout << string(47, '-') << "\n";
+            }
+            printf("%-5d %-25s %15.2f\n", temp->id, temp->nama.c_str(), temp->saldo);
+            ditemukan = true;
+        }
+        temp = temp->kanan;
+    }
+
+    if (!ditemukan)
+    {
+        cout << "Nasabah \"" << cariNasabah << "\" tidak ditemukan!\n";
+    }
+}
+
+// =========== DELETE SECTION
+void hapusData()
+{
+    string hapusNasabah;
+
+    cout << "\n======= MENU HAPUS ======\n";
+    cout << "=== Masukkan nama nasabah yang datanya ingin dihapus : ";
+    cin.ignore();
+    getline(cin, hapusNasabah);
+
+    Node *temp = head;
+    bool ditemukan = false;
+
+    while (temp != nullptr)
+    {
+        if (temp->nama == hapusNasabah)
+        {
+            ditemukan = true;
+
+            if (temp->kiri != nullptr)
+            {
+                temp->kiri->kanan = temp->kanan;
+            }
+            else
+            {
+                head = temp->kanan;
+            }
+
+            if (temp->kanan != nullptr)
+            {
+                temp->kanan->kiri = temp->kiri;
+            }
+
+            Node *toDelete = temp;
+            temp = temp->kanan;
+            delete toDelete;
+
+            cout << "Nasabah \"" << hapusNasabah << "\" berhasil dihapus.\n";
+        }
+        else
+        {
+            temp = temp->kanan;
+        }
+    }
+
+    if (!ditemukan)
+    {
+        cout << "Nasabah \"" << hapusNasabah << "\" tidak ditemukan!\n";
+    }
+    else
+    {
+        simpanKeFile();
     }
 }
 
@@ -308,13 +542,27 @@ void menu()
 
         switch (pilihanMenu)
         {
-        case 1: inputNasabah();    break;
-        case 2: tampilkanNasabah(); break;
-        case 3: editSaldo();       break;
-        case 4: cout << "Fitur belum tersedia\n"; break;
-        case 5: cout << "Fitur belum tersedia\n"; break;
-        case 6: cout << "Fitur belum tersedia\n"; break;
-        case 7: cout << "Terima kasih, sampai jumpa!\n"; break;
+        case 1:
+            inputNasabah();
+            break;
+        case 2:
+            tampilkanNasabah();
+            break;
+        case 3:
+            editSaldo();
+            break;
+        case 4:
+            sortingMenu();
+            break;
+        case 5:
+            searchingMenu();
+            break;
+        case 6:
+            hapusData();
+            break;
+        case 7:
+            cout << "Terima kasih, sampai jumpa!\n";
+            break;
         }
 
     } while (pilihanMenu != 7);
