@@ -2,11 +2,12 @@
 #include <string>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 using namespace std;
 
 struct Node
 {
-    int id;
+    string card;
     string nama;
     float saldo;
     Node *kanan;
@@ -16,15 +17,45 @@ struct Node
 Node *head = nullptr;
 
 // ================= BUAT NODE
-struct Node *buatNode(int id, string nama, float saldo)
+struct Node *buatNode(string card, string nama, float saldo)
 {
     Node *newNode = new Node;
-    newNode->id = id;
-    newNode->nama = nama;
+    newNode->card  = card;
+    newNode->nama  = nama;
     newNode->saldo = saldo;
     newNode->kanan = nullptr;
-    newNode->kiri = nullptr;
+    newNode->kiri  = nullptr;
     return newNode;
+}
+
+// ================= GENERATE CARD NUMBER
+bool cardSudahAda(string card)
+{
+    Node *temp = head;
+    while (temp != nullptr)
+    {
+        if (temp->card == card)
+            return true;
+        temp = temp->kanan;
+    }
+    return false;
+}
+
+string generateCardNumber()
+{
+    static int counter = 0;
+    string card = "";
+
+    do {
+        srand(time(0) + counter++);
+        card = "";
+        for (int i = 0; i < 16; i++)
+        {
+            card += to_string(rand() % 10);
+        }
+    } while (cardSudahAda(card));
+
+    return card;
 }
 
 // ================= FILE SECTION
@@ -39,7 +70,7 @@ void simpanKeFile()
     Node *temp = head;
     while (temp != nullptr)
     {
-        fprintf(file, "%d,%s,%.2f\n", temp->id, temp->nama.c_str(), temp->saldo);
+        fprintf(file, "%s,%s,%.2f\n", temp->card.c_str(), temp->nama.c_str(), temp->saldo);
         temp = temp->kanan;
     }
     fclose(file);
@@ -60,12 +91,12 @@ void muatDariFile()
     }
     head = nullptr;
 
-    int id;
+    char card[17];
     char nama[100];
     float saldo;
-    while (fscanf(file, "%d,%99[^,],%f\n", &id, nama, &saldo) == 3)
+    while (fscanf(file, "%16[^,],%99[^,],%f\n", card, nama, &saldo) == 3)
     {
-        Node *newNode = buatNode(id, string(nama), saldo);
+        Node *newNode = buatNode(string(card), string(nama), saldo);
         if (head == nullptr)
         {
             head = newNode;
@@ -85,23 +116,12 @@ void muatDariFile()
 }
 
 // ============================= INPUT SECTION
-int cariIdTerbesar()
-{
-    int maxId = 0;
-    Node *temp = head;
-    while (temp != nullptr) {
-        if (temp->id > maxId) maxId = temp->id;
-        temp = temp->kanan;
-    }
-    return maxId;
-}
-
 void inputNasabah()
 {
     string nama;
     float saldo;
 
-    int id = cariIdTerbesar() + 1;
+    string card = generateCardNumber();
 
     cout << "\n=== INPUT NASABAH BARU ===\n";
     cout << "Masukkan Nama Nasabah : ";
@@ -110,7 +130,7 @@ void inputNasabah()
     cout << "Masukkan Saldo Awal   : ";
     cin >> saldo;
 
-    Node *newNode = buatNode(id, nama, saldo);
+    Node *newNode = buatNode(card, nama, saldo);
 
     if (head == nullptr)
     {
@@ -128,7 +148,8 @@ void inputNasabah()
     }
 
     simpanKeFile();
-    cout << "Nasabah \"" << nama << "\" berhasil ditambahkan! (ID: " << id << ")\n";
+    cout << "Nasabah \"" << nama << "\" berhasil ditambahkan!\n";
+    cout << "Card Number           : " << card << "\n";
 }
 
 // ===================== DISPLAY SECTION
@@ -141,49 +162,50 @@ void tampilkanNasabah()
         return;
     }
 
-    cout << left;
-    printf("%-5s %-25s %15s\n", "ID", "Nama", "Saldo");
-    cout << string(47, '-') << "\n";
+    printf("%-18s %-25s %15s\n", "Card Number", "Nama", "Saldo");
+    cout << string(60, '-') << "\n";
 
     Node *temp = head;
     while (temp != nullptr)
     {
-        printf("%-5d %-25s %15.2f\n", temp->id, temp->nama.c_str(), temp->saldo);
+        printf("%-18s %-25s %15.2f\n", temp->card.c_str(), temp->nama.c_str(), temp->saldo);
         temp = temp->kanan;
     }
-    cout << string(47, '-') << "\n";
+    cout << string(60, '-') << "\n";
 }
 
-// ============== EDIT SALDO SECTION
-Node *cariNodeByNama(string nama)
+// ============== HELPER: CARI NODE BY CARD
+Node *cariNodeByCard(string card)
 {
     Node *temp = head;
     while (temp != nullptr)
     {
-        if (temp->nama == nama)
+        if (temp->card == card)
             return temp;
         temp = temp->kanan;
     }
     return nullptr;
 }
 
+// ============== EDIT SALDO SECTION
 void tambahSaldo()
 {
-    string nama;
+    string card;
     float jumlah;
 
     cout << "\n=== TAMBAH SALDO ===\n";
-    cout << "Masukkan Nama Nasabah : ";
+    cout << "Masukkan Card Number  : ";
     cin.ignore();
-    getline(cin, nama);
+    getline(cin, card);
 
-    Node *target = cariNodeByNama(nama);
+    Node *target = cariNodeByCard(card);
     if (target == nullptr)
     {
-        cout << "Nasabah \"" << nama << "\" tidak ditemukan!\n";
+        cout << "Nasabah dengan card number \"" << card << "\" tidak ditemukan!\n";
         return;
     }
 
+    cout << "Nama                  : " << target->nama << "\n";
     cout << "Saldo saat ini        : " << target->saldo << "\n";
     cout << "Masukkan Jumlah Tambah: ";
     cin >> jumlah;
@@ -201,21 +223,22 @@ void tambahSaldo()
 
 void tarikSaldo()
 {
-    string nama;
+    string card;
     float jumlah;
 
     cout << "\n=== TARIK SALDO ===\n";
-    cout << "Masukkan Nama Nasabah : ";
+    cout << "Masukkan Card Number  : ";
     cin.ignore();
-    getline(cin, nama);
+    getline(cin, card);
 
-    Node *target = cariNodeByNama(nama);
+    Node *target = cariNodeByCard(card);
     if (target == nullptr)
     {
-        cout << "Nasabah \"" << nama << "\" tidak ditemukan!\n";
+        cout << "Nasabah dengan card number \"" << card << "\" tidak ditemukan!\n";
         return;
     }
 
+    cout << "Nama                  : " << target->nama << "\n";
     cout << "Saldo saat ini        : " << target->saldo << "\n";
     cout << "Masukkan Jumlah Tarik : ";
     cin >> jumlah;
@@ -238,21 +261,22 @@ void tarikSaldo()
 
 void ubahNominal()
 {
-    string nama;
+    string card;
     float nominalBaru;
 
     cout << "\n=== UBAH NOMINAL SALDO ===\n";
-    cout << "Masukkan Nama Nasabah   : ";
+    cout << "Masukkan Card Number    : ";
     cin.ignore();
-    getline(cin, nama);
+    getline(cin, card);
 
-    Node *target = cariNodeByNama(nama);
+    Node *target = cariNodeByCard(card);
     if (target == nullptr)
     {
-        cout << "Nasabah \"" << nama << "\" tidak ditemukan!\n";
+        cout << "Nasabah dengan card number \"" << card << "\" tidak ditemukan!\n";
         return;
     }
 
+    cout << "Nama                    : " << target->nama << "\n";
     cout << "Saldo saat ini          : " << target->saldo << "\n";
     cout << "Masukkan Nominal Baru   : ";
     cin >> nominalBaru;
@@ -312,17 +336,17 @@ void bubbleSortNama()
         {
             if (curr->nama > curr->kanan->nama)
             {
-                int tempId         = curr->id;
-                curr->id           = curr->kanan->id;
-                curr->kanan->id    = tempId;
+                string tempCard      = curr->card;
+                curr->card           = curr->kanan->card;
+                curr->kanan->card    = tempCard;
 
-                string tempNama    = curr->nama;
-                curr->nama         = curr->kanan->nama;
-                curr->kanan->nama  = tempNama;
+                string tempNama      = curr->nama;
+                curr->nama           = curr->kanan->nama;
+                curr->kanan->nama    = tempNama;
 
-                float tempSaldo    = curr->saldo;
-                curr->saldo        = curr->kanan->saldo;
-                curr->kanan->saldo = tempSaldo;
+                float tempSaldo      = curr->saldo;
+                curr->saldo          = curr->kanan->saldo;
+                curr->kanan->saldo   = tempSaldo;
 
                 swapped = true;
             }
@@ -353,33 +377,33 @@ void quickSortSaldo(Node *low, Node *high)
             {
                 i = (i == nullptr) ? low : i->kanan;
 
-                int tempId         = i->id;
-                i->id              = j->id;
-                j->id              = tempId;
+                string tempCard      = i->card;
+                i->card              = j->card;
+                j->card              = tempCard;
 
-                string tempNama    = i->nama;
-                i->nama            = j->nama;
-                j->nama            = tempNama;
+                string tempNama      = i->nama;
+                i->nama              = j->nama;
+                j->nama              = tempNama;
 
-                float tempSaldo    = i->saldo;
-                i->saldo           = j->saldo;
-                j->saldo           = tempSaldo;
+                float tempSaldo      = i->saldo;
+                i->saldo             = j->saldo;
+                j->saldo             = tempSaldo;
             }
         }
 
         i = (i == nullptr) ? low : i->kanan;
 
-        int tempId         = i->id;
-        i->id              = high->id;
-        high->id           = tempId;
+        string tempCard      = i->card;
+        i->card              = high->card;
+        high->card           = tempCard;
 
-        string tempNama    = i->nama;
-        i->nama            = high->nama;
-        high->nama         = tempNama;
+        string tempNama      = i->nama;
+        i->nama              = high->nama;
+        high->nama           = tempNama;
 
-        float tempSaldo    = i->saldo;
-        i->saldo           = high->saldo;
-        high->saldo        = tempSaldo;
+        float tempSaldo      = i->saldo;
+        i->saldo             = high->saldo;
+        high->saldo          = tempSaldo;
 
         quickSortSaldo(low, i->kiri);
         quickSortSaldo(i->kanan, high);
@@ -429,6 +453,17 @@ void sortingMenu()
 }
 
 // =============== SEARCHING SECTION
+
+// Fungsi mengubah string menjadi huruf kecil semua
+string toLower(string str)
+{
+    for (int i = 0; i < (int)str.length(); i++)
+    {
+        str[i] = tolower(str[i]);
+    }
+    return str;
+}
+
 void searchingMenu()
 {
     string cariNasabah;
@@ -443,15 +478,15 @@ void searchingMenu()
 
     while (temp != nullptr)
     {
-        if (temp->nama == cariNasabah)
+        if (toLower(temp->nama) == toLower(cariNasabah))
         {
             if (!ditemukan)
             {
                 cout << "\nHasil Pencarian:\n";
-                printf("%-5s %-25s %15s\n", "ID", "Nama", "Saldo");
-                cout << string(47, '-') << "\n";
+                printf("%-18s %-25s %15s\n", "Card Number", "Nama", "Saldo");
+                cout << string(60, '-') << "\n";
             }
-            printf("%-5d %-25s %15.2f\n", temp->id, temp->nama.c_str(), temp->saldo);
+            printf("%-18s %-25s %15.2f\n", temp->card.c_str(), temp->nama.c_str(), temp->saldo);
             ditemukan = true;
         }
         temp = temp->kanan;
@@ -466,56 +501,59 @@ void searchingMenu()
 // =========== DELETE SECTION
 void hapusData()
 {
-    string hapusNasabah;
+    string hapusCard;
 
     cout << "\n======= MENU HAPUS ======\n";
-    cout << "=== Masukkan nama nasabah yang datanya ingin dihapus : ";
+    cout << "=== Masukkan card number nasabah yang ingin dihapus : ";
     cin.ignore();
-    getline(cin, hapusNasabah);
+    getline(cin, hapusCard);
 
-    Node *temp = head;
-    bool ditemukan = false;
+    Node *temp = cariNodeByCard(hapusCard);
 
-    while (temp != nullptr)
+    if (temp == nullptr)
     {
-        if (temp->nama == hapusNasabah)
-        {
-            ditemukan = true;
-
-            if (temp->kiri != nullptr)
-            {
-                temp->kiri->kanan = temp->kanan;
-            }
-            else
-            {
-                head = temp->kanan;
-            }
-
-            if (temp->kanan != nullptr)
-            {
-                temp->kanan->kiri = temp->kiri;
-            }
-
-            Node *toDelete = temp;
-            temp = temp->kanan;
-            delete toDelete;
-
-            cout << "Nasabah \"" << hapusNasabah << "\" berhasil dihapus.\n";
-        }
-        else
-        {
-            temp = temp->kanan;
-        }
+        cout << "Nasabah dengan card number \"" << hapusCard << "\" tidak ditemukan!\n";
+        return;
     }
 
-    if (!ditemukan)
+    // Tampilkan data nasabah yang akan dihapus
+    cout << "\nData nasabah yang akan dihapus:\n";
+    printf("%-18s %-25s %15s\n", "Card Number", "Nama", "Saldo");
+    cout << string(60, '-') << "\n";
+    printf("%-18s %-25s %15.2f\n", temp->card.c_str(), temp->nama.c_str(), temp->saldo);
+    cout << string(60, '-') << "\n";
+
+    // Konfirmasi hapus
+    char konfirmasi;
+    cout << "Apakah Anda yakin ingin menghapus data ini? (y/n) : ";
+    cin >> konfirmasi;
+
+    if (konfirmasi != 'y' && konfirmasi != 'Y')
     {
-        cout << "Nasabah \"" << hapusNasabah << "\" tidak ditemukan!\n";
+        cout << "Penghapusan dibatalkan.\n";
+        return;
+    }
+
+    // Proses hapus
+    if (temp->kiri != nullptr)
+    {
+        temp->kiri->kanan = temp->kanan;
     }
     else
     {
-        simpanKeFile();
+        head = temp->kanan;
     }
+
+    if (temp->kanan != nullptr)
+    {
+        temp->kanan->kiri = temp->kiri;
+    }
+
+    string namaHapus = temp->nama;
+    delete temp;
+
+    simpanKeFile();
+    cout << "Nasabah \"" << namaHapus << "\" berhasil dihapus.\n";
 }
 
 // ======================== MENU SECTION
